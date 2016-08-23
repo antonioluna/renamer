@@ -1,0 +1,114 @@
+#!/usr/bin/env python2
+#_*_ encoding:utf-8 _*_
+
+from os import rename, listdir, path
+from re import compile, match
+from argparse import ArgumentParser
+from sys import exit
+
+
+__author__ = "Antonio Luna"
+
+
+def ObtArg():
+    Diccionario_argumentos = {}
+
+     # Creamos una variable a la que le vamos a ir parseando los argumentos
+
+    parser = ArgumentParser(
+            
+            description = 'Este software reemplazará el nombre de ficheros \
+                          por la cadena dada en caso de que el nombre \
+                          original coincida con la expresión regular.'
+            )
+
+    parser.add_argument(
+            
+            '-d', '--directory', 
+            type=str, 
+            help='ruta del directorio', 
+            required=True
+            )
+                
+    parser.add_argument(
+            
+            '-e', '--regexp', 
+            type=str, 
+            help='Expresión regular', 
+            required=True
+            )
+    
+    parser.add_argument(
+            
+            '-n', '--name', 
+            type=str, 
+            help='Nuevo nombre', 
+            required=True
+            )
+    
+    argumentos = parser.parse_args()
+    
+    # Devolvemos diccionario con los 2 parámetros
+    Diccionario_argumentos["directorio"] = argumentos.directory
+    Diccionario_argumentos["expresion"] = argumentos.regexp
+    Diccionario_argumentos["nombre"] = argumentos.name
+
+    return Diccionario_argumentos
+
+
+def CheckExprReg(cadena_re, lista_ficheros):
+    '''
+        aqui hay que comprobar qué ficheros tienen un nombre que coinciden
+        con la expresión regular para su posterior tratamiento
+    '''
+    lista_renombar = []
+
+    try:
+        expresion = compile(cadena_re)
+    except:
+        print "La expresión regular no es válida"
+        exit(1)
+
+    for itm in lista_ficheros:
+        f_chk = str(expresion.match(itm))
+
+        if f_chk != 'None':
+            lista_renombar.append(itm)
+
+    return lista_renombar
+
+
+# Lógica principal
+
+ArgDic = ObtArg()
+Directorio = path.abspath(ArgDic["directorio"])
+Ficheros = listdir(Directorio)
+
+F_renombrar = CheckExprReg(ArgDic["expresion"], Ficheros)
+
+if len(F_renombrar) == 1:
+
+    if not path.isfile(Directorio + "/" + ArgDic["nombre"]):
+
+        rename(
+                Directorio + "/" + F_renombrar[0], 
+                Directorio + "/" + ArgDic["nombre"]
+                )
+   
+        print Directorio + "/" + F_renombrar[0] + " ==> " + \
+              Directorio + "/" + ArgDic["nombre"]
+
+    else:
+        print "El fichero de destino ya existe, no se puede renombrar"
+        exit(1)
+
+elif len(F_renombrar) == 0:
+    print "Ninguna coincidencia para " + ArgDic["expresion"]
+else:
+    print "Los siguientes ficheros coinciden con la regexp: \n" + \
+          ArgDic["expresion"]  + "\nNo se puede continuar"
+
+    for f in F_renombrar:
+        print f
+
+    exit(1)
